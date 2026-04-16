@@ -1,9 +1,9 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Colors } from '@/constants/theme';
 import type { ChordShape } from '@/utils/chord-shapes';
 
 const STRING_LABELS = ['E', 'A', 'D', 'G', 'B', 'e'] as const;
-const ROWS = [0, 1, 2, 3, 4];
+const ROWS = Array.from({ length: 12 }, (_, index) => index);
 
 interface ChordFretboardEditorProps {
   shape: ChordShape;
@@ -91,7 +91,17 @@ export function ChordFretboardEditor({ shape, onChange }: ChordFretboardEditorPr
         })}
       </View>
 
-      <View style={{ gap: 6 }}>
+      <ScrollView
+        style={{
+          maxHeight: 320,
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: Colors.border,
+          backgroundColor: Colors.surfaceSubtle,
+        }}
+        contentContainerStyle={{ padding: 10, gap: 6 }}
+        nestedScrollEnabled
+      >
         {ROWS.map((row) => (
           <View key={row} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text
@@ -135,7 +145,7 @@ export function ChordFretboardEditor({ shape, onChange }: ChordFretboardEditorPr
             })}
           </View>
         ))}
-      </View>
+      </ScrollView>
 
       <View
         style={{

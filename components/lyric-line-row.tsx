@@ -6,8 +6,10 @@ import { ChordDisplay } from './chord-display';
 import { ChordEditor } from './chord-editor';
 import { LineRecordingButton } from './line-recording-button';
 import { useChordDisplay } from '@/contexts/chord-display-context';
+import { useCustomChords } from '@/hooks/use-custom-chords';
 import { updateLine } from '@/db/lines';
 import { serializeChords } from '@/utils/chord-parser';
+import { resolveChordShape } from '@/utils/chord-shapes';
 import type { LyricLine, ChordAnnotation } from '@/types/song';
 
 const LYRIC_FONT_SIZE = 17;
@@ -32,6 +34,7 @@ export function LyricLineRow({ line, songId, onDelete, onDrag, isActive }: Lyric
   const [chordEditMode, setChordEditMode] = useState(false);
   const [annotations, setAnnotations] = useState<ChordAnnotation[]>(line.chordAnnotations);
   const chordDisplayMode = useChordDisplay();
+  const { chords: customChords } = useCustomChords();
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const charWidth = useRef<number>(0);
@@ -79,7 +82,13 @@ export function LyricLineRow({ line, songId, onDelete, onDrag, isActive }: Lyric
 
   const hasChords = annotations.length > 0;
   const showChordRow = hasChords || chordEditMode;
-  const chordRowHeight = CHORD_ROW_HEIGHTS[chordDisplayMode];
+  const hasAnyResolvedChord = annotations.some((annotation) =>
+    !!resolveChordShape(annotation.chord, customChords)
+  );
+  const chordRowHeight =
+    chordDisplayMode === 'name' || !hasAnyResolvedChord
+      ? CHORD_ROW_HEIGHTS.name
+      : CHORD_ROW_HEIGHTS[chordDisplayMode];
 
   return (
     <View

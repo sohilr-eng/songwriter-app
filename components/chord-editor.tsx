@@ -27,6 +27,7 @@ export function ChordEditor({ text, annotations, charWidth, onSave, onClose }: C
   const [draft, setDraft] = useState<ChordAnnotation[]>([...annotations]);
   const [editing, setEditing] = useState<{ offset: number; value: string } | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [pendingCreate, setPendingCreate] = useState<{ offset: number; value: string } | null>(null);
   const inputRef = useRef<TextInput>(null);
   const { chords: customChords } = useCustomChords();
 
@@ -62,6 +63,20 @@ export function ChordEditor({ text, annotations, charWidth, onSave, onClose }: C
 
   function handleRemove(offset: number) {
     setDraft(prev => prev.filter(a => a.charOffset !== offset));
+  }
+
+  function handleOpenCreateModal() {
+    if (!editing) return;
+    setPendingCreate(editing);
+    setEditing(null);
+    setCreateModalOpen(true);
+  }
+
+  function restoreEditingState() {
+    if (!pendingCreate) return;
+    setEditing(pendingCreate);
+    setPendingCreate(null);
+    setTimeout(() => inputRef.current?.focus(), 50);
   }
 
   const editingValue = editing?.value.trim() ?? '';
@@ -187,7 +202,7 @@ export function ChordEditor({ text, annotations, charWidth, onSave, onClose }: C
 
                   {editingValue.length > 0 && !hasResolvedShape && (
                     <Pressable
-                      onPress={() => setCreateModalOpen(true)}
+                      onPress={handleOpenCreateModal}
                       style={{
                         padding: 10,
                         borderRadius: 10,
@@ -242,9 +257,15 @@ export function ChordEditor({ text, annotations, charWidth, onSave, onClose }: C
 
       <CustomChordEditorModal
         visible={createModalOpen}
-        initialName={editingValue}
-        onDone={() => setCreateModalOpen(false)}
-        onCancel={() => setCreateModalOpen(false)}
+        initialName={pendingCreate?.value.trim()}
+        onDone={() => {
+          setCreateModalOpen(false);
+          restoreEditingState();
+        }}
+        onCancel={() => {
+          setCreateModalOpen(false);
+          restoreEditingState();
+        }}
       />
     </View>
   );
