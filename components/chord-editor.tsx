@@ -4,6 +4,9 @@ import {
   TouchableWithoutFeedback, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Colors } from '@/constants/theme';
+import { useCustomChords } from '@/hooks/use-custom-chords';
+import { resolveChordShape } from '@/utils/chord-shapes';
+import { CustomChordEditorModal } from './custom-chord-editor-modal';
 import type { ChordAnnotation } from '@/types/song';
 
 interface WordPosition {
@@ -23,7 +26,9 @@ interface ChordEditorProps {
 export function ChordEditor({ text, annotations, charWidth, onSave, onClose }: ChordEditorProps) {
   const [draft, setDraft] = useState<ChordAnnotation[]>([...annotations]);
   const [editing, setEditing] = useState<{ offset: number; value: string } | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const { chords: customChords } = useCustomChords();
 
   // Build word positions
   const words: WordPosition[] = [];
@@ -58,6 +63,9 @@ export function ChordEditor({ text, annotations, charWidth, onSave, onClose }: C
   function handleRemove(offset: number) {
     setDraft(prev => prev.filter(a => a.charOffset !== offset));
   }
+
+  const editingValue = editing?.value.trim() ?? '';
+  const hasResolvedShape = editingValue ? !!resolveChordShape(editingValue, customChords) : false;
 
   return (
     <View style={{ position: 'relative' }}>
@@ -177,6 +185,23 @@ export function ChordEditor({ text, annotations, charWidth, onSave, onClose }: C
                     }}
                   />
 
+                  {editingValue.length > 0 && !hasResolvedShape && (
+                    <Pressable
+                      onPress={() => setCreateModalOpen(true)}
+                      style={{
+                        padding: 10,
+                        borderRadius: 10,
+                        backgroundColor: Colors.accentSubtle,
+                        borderWidth: 1,
+                        borderColor: Colors.border,
+                      }}
+                    >
+                      <Text style={{ fontSize: 13, lineHeight: 18, color: Colors.textSecondary }}>
+                        No diagram for {editingValue}. Tap to create one.
+                      </Text>
+                    </Pressable>
+                  )}
+
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <Pressable
                       onPress={handleConfirm}
@@ -214,6 +239,13 @@ export function ChordEditor({ text, annotations, charWidth, onSave, onClose }: C
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      <CustomChordEditorModal
+        visible={createModalOpen}
+        initialName={editingValue}
+        onDone={() => setCreateModalOpen(false)}
+        onCancel={() => setCreateModalOpen(false)}
+      />
     </View>
   );
 }

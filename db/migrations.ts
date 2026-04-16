@@ -78,4 +78,18 @@ export const MIGRATIONS = [
   `
   ALTER TABLE songs ADD COLUMN chord_display_mode TEXT NOT NULL DEFAULT 'both';
   `,
+  `
+  CREATE TABLE IF NOT EXISTS custom_chords (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    frets TEXT NOT NULL,
+    fingers TEXT,
+    barre INTEGER,
+    base_fret INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_chords_name ON custom_chords(name);
+  `,
 ];

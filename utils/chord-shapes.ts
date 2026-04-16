@@ -1,3 +1,5 @@
+import type { CustomChord } from '@/types/chord';
+
 /**
  * Static chord shape data for SVG fretboard diagrams.
  *
@@ -114,4 +116,20 @@ export function resolveChordName(input: string): string | null {
   // Try capitalizing first letter
   const capped = input.charAt(0).toUpperCase() + input.slice(1);
   return CHORD_SHAPES[capped] ? capped : null;
+}
+
+export function isBuiltInChord(name: string): boolean {
+  if (name in CHORD_SHAPES) return true;
+  const capped = name.charAt(0).toUpperCase() + name.slice(1);
+  return capped in CHORD_SHAPES;
+}
+
+export function resolveChordShape(
+  name: string,
+  customChords: CustomChord[]
+): ChordShape | null {
+  const lowerName = name.toLowerCase();
+  const custom = customChords.find((chord) => chord.name.toLowerCase() === lowerName);
+  if (custom) return custom.shape;
+  return getChordShape(name);
 }

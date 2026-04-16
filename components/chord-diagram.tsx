@@ -2,6 +2,7 @@ import Svg, {
   Line, Circle, Rect, Text as SvgText, G,
 } from 'react-native-svg';
 import { getChordShape } from '@/utils/chord-shapes';
+import type { ChordShape } from '@/utils/chord-shapes';
 import { Colors } from '@/constants/theme';
 
 // ── Layout constants ──────────────────────────────────────────────────────
@@ -26,14 +27,16 @@ interface ChordDiagramProps {
   chordName: string;
   width?: number;
   showLabel?: boolean;
+  shape?: ChordShape | null;
 }
 
 export function ChordDiagram({
   chordName,
   width = DIAGRAM_WIDTH,
   showLabel = true,
+  shape: shapeProp,
 }: ChordDiagramProps) {
-  const shape = getChordShape(chordName);
+  const shape = shapeProp !== undefined ? shapeProp : getChordShape(chordName);
   const baseFret = shape?.baseFret ?? 1;
   const frets   = shape?.frets ?? [-1, -1, -1, -1, -1, -1];
   const fingers = shape?.fingers;

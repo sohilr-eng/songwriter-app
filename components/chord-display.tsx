@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Pressable, Text, Modal, View, TouchableWithoutFeedback } from 'react-native';
 import { ChordDiagram, DIAGRAM_WIDTH } from './chord-diagram';
-import { getChordShape } from '@/utils/chord-shapes';
 import { Colors } from '@/constants/theme';
 import { useChordDisplay } from '@/contexts/chord-display-context';
+import { useCustomChords } from '@/hooks/use-custom-chords';
+import { resolveChordShape } from '@/utils/chord-shapes';
 
 interface ChordDisplayProps {
   chord: string;
@@ -14,12 +15,14 @@ interface ChordDisplayProps {
 
 export function ChordDisplay({ chord, left, onLongPress }: ChordDisplayProps) {
   const [diagramVisible, setDiagramVisible] = useState(false);
-  const hasShape = !!getChordShape(chord);
   const mode = useChordDisplay();
+  const { chords: customChords } = useCustomChords();
+  const shape = resolveChordShape(chord, customChords);
+  const hasShape = !!shape;
 
   function renderInlineContent() {
     if (mode === 'diagram' && hasShape) {
-      return <ChordDiagram chordName={chord} width={54} showLabel={false} />;
+      return <ChordDiagram chordName={chord} width={54} showLabel={false} shape={shape} />;
     }
 
     if (mode === 'both' && hasShape) {
@@ -35,7 +38,7 @@ export function ChordDisplay({ chord, left, onLongPress }: ChordDisplayProps) {
           >
             {chord}
           </Text>
-          <ChordDiagram chordName={chord} width={56} showLabel={false} />
+          <ChordDiagram chordName={chord} width={56} showLabel={false} shape={shape} />
         </View>
       );
     }
@@ -98,7 +101,7 @@ export function ChordDisplay({ chord, left, onLongPress }: ChordDisplayProps) {
                   width: DIAGRAM_WIDTH + 48,
                 }}
               >
-                <ChordDiagram chordName={chord} />
+                <ChordDiagram chordName={chord} shape={shape} />
                 {!hasShape && (
                   <Text style={{ color: Colors.textSecondary, fontSize: 14, marginTop: 8 }}>
                     No diagram available
