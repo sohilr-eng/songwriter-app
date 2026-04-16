@@ -25,7 +25,7 @@ export const unstable_settings = {
 export default function RootLayout() {
   return (
     <ThemeProvider value={AppTheme}>
-      <Stack>
+      <Stack screenOptions={{ contentStyle: { backgroundColor: Colors.background } }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
         {/* Song screens */}
