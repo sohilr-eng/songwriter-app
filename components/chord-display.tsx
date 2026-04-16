@@ -3,6 +3,7 @@ import { Pressable, Text, Modal, View, TouchableWithoutFeedback } from 'react-na
 import { ChordDiagram, DIAGRAM_WIDTH } from './chord-diagram';
 import { getChordShape } from '@/utils/chord-shapes';
 import { Colors } from '@/constants/theme';
+import { useChordDisplay } from '@/contexts/chord-display-context';
 
 interface ChordDisplayProps {
   chord: string;
@@ -14,6 +15,44 @@ interface ChordDisplayProps {
 export function ChordDisplay({ chord, left, onLongPress }: ChordDisplayProps) {
   const [diagramVisible, setDiagramVisible] = useState(false);
   const hasShape = !!getChordShape(chord);
+  const mode = useChordDisplay();
+
+  function renderInlineContent() {
+    if (mode === 'diagram' && hasShape) {
+      return <ChordDiagram chordName={chord} width={54} showLabel={false} />;
+    }
+
+    if (mode === 'both' && hasShape) {
+      return (
+        <View style={{ alignItems: 'center', gap: 2 }}>
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: '700',
+              color: Colors.chordColor,
+              letterSpacing: 0.2,
+            }}
+          >
+            {chord}
+          </Text>
+          <ChordDiagram chordName={chord} width={56} showLabel={false} />
+        </View>
+      );
+    }
+
+    return (
+      <Text
+        style={{
+          fontSize: 13,
+          fontWeight: '700',
+          color: Colors.chordColor,
+          letterSpacing: 0.2,
+        }}
+      >
+        {chord}
+      </Text>
+    );
+  }
 
   return (
     <>
@@ -25,19 +64,11 @@ export function ChordDisplay({ chord, left, onLongPress }: ChordDisplayProps) {
           position: 'absolute',
           left,
           top: 2,
+          alignItems: 'center',
         }}
         hitSlop={4}
       >
-        <Text
-          style={{
-            fontSize: 13,
-            fontWeight: '700',
-            color: Colors.chordColor,
-            letterSpacing: 0.2,
-          }}
-        >
-          {chord}
-        </Text>
+        {renderInlineContent()}
       </Pressable>
 
       {/* Chord diagram modal */}

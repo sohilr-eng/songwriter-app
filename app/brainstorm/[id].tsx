@@ -97,6 +97,7 @@ export default function IdeaEditorScreen() {
               tags: null,
               coverUri: null,
               createdBy: null,
+              chordDisplayMode: 'both',
             });
 
             // Split the text into lines, create a single section + lyric lines

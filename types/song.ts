@@ -5,6 +5,8 @@ export type SongKey =
   | 'F#m' | 'Gbm' | 'Gm' | 'G#m' | 'Abm' | 'Am' | 'A#m' | 'Bbm' | 'Bm'
   | string;
 
+export type ChordDisplayMode = 'name' | 'diagram' | 'both';
+
 // ── SQLite row types ──────────────────────────────────────────────────────
 
 export interface AlbumRow {
@@ -22,6 +24,7 @@ export interface SongRow {
   tags: string | null;       // comma-separated
   coverUri: string | null;   // local file URI from camera roll
   createdBy: string | null;  // stub for future collaboration
+  chordDisplayMode: ChordDisplayMode;
   createdAt: number;
   updatedAt: number;
 }

@@ -24,9 +24,15 @@ function fy(row: number) { return TOP + (row - 0.5) * F; }
 
 interface ChordDiagramProps {
   chordName: string;
+  width?: number;
+  showLabel?: boolean;
 }
 
-export function ChordDiagram({ chordName }: ChordDiagramProps) {
+export function ChordDiagram({
+  chordName,
+  width = DIAGRAM_WIDTH,
+  showLabel = true,
+}: ChordDiagramProps) {
   const shape = getChordShape(chordName);
   const baseFret = shape?.baseFret ?? 1;
   const frets   = shape?.frets ?? [-1, -1, -1, -1, -1, -1];
@@ -37,7 +43,11 @@ export function ChordDiagram({ chordName }: ChordDiagramProps) {
   const bg   = Colors.surface;
 
   return (
-    <Svg width={DIAGRAM_WIDTH} height={DIAGRAM_HEIGHT}>
+    <Svg
+      width={width}
+      height={(width / DIAGRAM_WIDTH) * DIAGRAM_HEIGHT}
+      viewBox={`0 0 ${DIAGRAM_WIDTH} ${DIAGRAM_HEIGHT}`}
+    >
 
       {/* ── Nut or baseFret label ─────────────────────────────────────── */}
       {baseFret === 1 ? (
@@ -152,14 +162,16 @@ export function ChordDiagram({ chordName }: ChordDiagramProps) {
       })}
 
       {/* ── Chord name label ─────────────────────────────────────────── */}
-      <SvgText
-        x={DIAGRAM_WIDTH / 2}
-        y={DIAGRAM_HEIGHT - 6}
-        fontSize={14} fontWeight="700"
-        fill={dark} textAnchor="middle"
-      >
-        {chordName}
-      </SvgText>
+      {showLabel && (
+        <SvgText
+          x={DIAGRAM_WIDTH / 2}
+          y={DIAGRAM_HEIGHT - 6}
+          fontSize={14} fontWeight="700"
+          fill={dark} textAnchor="middle"
+        >
+          {chordName}
+        </SvgText>
+      )}
     </Svg>
   );
 }

@@ -7,19 +7,27 @@ import { useSong } from '@/hooks/use-song';
 import { SectionBlock } from '@/components/section-block';
 import { UndoBar } from '@/components/undo-bar';
 import { CoverImage } from '@/components/cover-image';
+import { SegmentedControl } from '@/components/segmented-control';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { ChordDisplayProvider } from '@/contexts/chord-display-context';
 import { Colors } from '@/constants/theme';
 import { createSection, reorderSections } from '@/db/sections';
+import { updateSong } from '@/db/songs';
 import { computeOrder } from '@/utils/reorder';
 import { uuid } from '@/utils/uuid';
-import type { Section } from '@/types/song';
+import type { ChordDisplayMode, Section } from '@/types/song';
+
+const CHORD_DISPLAY_OPTIONS: { label: string; value: ChordDisplayMode }[] = [
+  { label: 'Name', value: 'name' },
+  { label: 'Chart', value: 'diagram' },
+  { label: 'Both', value: 'both' },
+];
 
 export default function SongEditorScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const song = useSong(id);
 
-  // ── Undo bar ────────────────────────────────────────────────────────────
   const [undoVisible, setUndoVisible] = useState(false);
   const [undoMessage, setUndoMessage] = useState('');
   const [undoFn, setUndoFn] = useState<(() => Promise<void>) | null>(null);
@@ -30,7 +38,6 @@ export default function SongEditorScreen() {
     setUndoVisible(true);
   }, []);
 
-  // ── Section management ──────────────────────────────────────────────────
   async function handleAddSection() {
     const section: Section = {
       id: uuid(),
@@ -66,7 +73,7 @@ export default function SongEditorScreen() {
   if (!song) {
     return (
       <View style={{ flex: 1, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: Colors.textSecondary }}>Loading…</Text>
+        <Text style={{ color: Colors.textSecondary }}>Loading...</Text>
       </View>
     );
   }
@@ -74,8 +81,6 @@ export default function SongEditorScreen() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.background }}>
       <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
-
-        {/* ── Header ───────────────────────────────────────────────────── */}
         <View
           style={{
             flexDirection: 'row',
@@ -95,10 +100,7 @@ export default function SongEditorScreen() {
           <CoverImage uri={song.coverUri} size={36} />
 
           <View style={{ flex: 1 }}>
-            <Text
-              style={{ fontSize: 17, fontWeight: '700', color: Colors.textPrimary }}
-              numberOfLines={1}
-            >
+            <Text style={{ fontSize: 17, fontWeight: '700', color: Colors.textPrimary }} numberOfLines={1}>
               {song.title}
             </Text>
             {(song.key || song.bpm) && (
@@ -108,79 +110,82 @@ export default function SongEditorScreen() {
             )}
           </View>
 
-          {/* Versions */}
-          <Pressable
-            onPress={() => router.push(`/song/${id}/snapshots`)}
-            hitSlop={10}
-            style={{ padding: 6 }}
-          >
+          <Pressable onPress={() => router.push(`/song/${id}/snapshots`)} hitSlop={10} style={{ padding: 6 }}>
             <IconSymbol name="clock.arrow.circlepath" size={20} color={Colors.icon} />
           </Pressable>
 
-          {/* Settings */}
-          <Pressable
-            onPress={() => router.push(`/song/${id}/settings`)}
-            hitSlop={10}
-            style={{ padding: 6 }}
-          >
+          <Pressable onPress={() => router.push(`/song/${id}/chord-help`)} hitSlop={10} style={{ padding: 6 }}>
+            <IconSymbol name="music.note.list" size={20} color={Colors.icon} />
+          </Pressable>
+
+          <Pressable onPress={() => router.push(`/song/${id}/settings`)} hitSlop={10} style={{ padding: 6 }}>
             <IconSymbol name="ellipsis" size={20} color={Colors.icon} />
           </Pressable>
         </View>
 
-        {/* ── Editor body ───────────────────────────────────────────────── */}
-        <ScrollView
-          contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-        >
-          <DraggableFlatList
-            data={song.sections}
-            keyExtractor={item => item.id}
-            renderItem={renderSection}
-            onDragEnd={({ data }) => handleReorderSections(data)}
-            scrollEnabled={false}
-            containerStyle={{ overflow: 'visible' }}
+        <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+          <SegmentedControl
+            options={CHORD_DISPLAY_OPTIONS}
+            value={song.chordDisplayMode}
+            onChange={(mode) => {
+              void updateSong(id, { chordDisplayMode: mode });
+            }}
           />
+        </View>
 
-          {/* Add section */}
-          <Pressable
-            onPress={handleAddSection}
-            style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              paddingVertical: 14,
-              borderRadius: 14,
-              borderWidth: 1.5,
-              borderColor: Colors.border,
-              borderStyle: 'dashed',
-              opacity: pressed ? 0.6 : 1,
-              marginTop: song.sections.length > 0 ? 4 : 0,
-            })}
+        <ChordDisplayProvider mode={song.chordDisplayMode}>
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
           >
-            <IconSymbol name="plus" size={18} color={Colors.textSecondary} />
-            <Text style={{ fontSize: 15, color: Colors.textSecondary, fontWeight: '500' }}>
-              Add Section
-            </Text>
-          </Pressable>
+            <DraggableFlatList
+              data={song.sections}
+              keyExtractor={(item) => item.id}
+              renderItem={renderSection}
+              onDragEnd={({ data }) => handleReorderSections(data)}
+              scrollEnabled={false}
+              containerStyle={{ overflow: 'visible' }}
+            />
 
-          {song.sections.length === 0 && (
-            <Text
-              style={{
-                textAlign: 'center',
-                color: Colors.textTertiary,
-                fontSize: 14,
-                marginTop: 16,
-                lineHeight: 20,
-              }}
+            <Pressable
+              onPress={handleAddSection}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                paddingVertical: 14,
+                borderRadius: 14,
+                borderWidth: 1.5,
+                borderColor: Colors.border,
+                borderStyle: 'dashed',
+                opacity: pressed ? 0.6 : 1,
+                marginTop: song.sections.length > 0 ? 4 : 0,
+              })}
             >
-              Add a section to start writing.{'\n'}Verse, Chorus, Bridge — name it anything.
-            </Text>
-          )}
-        </ScrollView>
+              <IconSymbol name="plus" size={18} color={Colors.textSecondary} />
+              <Text style={{ fontSize: 15, color: Colors.textSecondary, fontWeight: '500' }}>
+                Add Section
+              </Text>
+            </Pressable>
 
-        {/* ── Undo bar ─────────────────────────────────────────────────── */}
+            {song.sections.length === 0 && (
+              <Text
+                style={{
+                  textAlign: 'center',
+                  color: Colors.textTertiary,
+                  fontSize: 14,
+                  marginTop: 16,
+                  lineHeight: 20,
+                }}
+              >
+                Add a section to start writing.{'\n'}Verse, Chorus, Bridge - name it anything.
+              </Text>
+            )}
+          </ScrollView>
+        </ChordDisplayProvider>
+
         <UndoBar
           visible={undoVisible}
           message={undoMessage}

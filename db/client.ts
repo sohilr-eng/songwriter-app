@@ -25,6 +25,10 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
 
   for (let i = version; i < MIGRATIONS.length; i++) {
     await db.execAsync(MIGRATIONS[i]);
+    await db.execAsync(`
+      DELETE FROM schema_version;
+      INSERT INTO schema_version (version) VALUES (${i + 1});
+    `);
   }
 
   _db = db;

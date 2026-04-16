@@ -33,6 +33,7 @@ export default function NewSongScreen() {
       tags: null,
       coverUri: null,
       createdBy: null,
+      chordDisplayMode: 'both',
     });
     router.dismiss();
     router.push(`/song/${id}`);

@@ -29,7 +29,7 @@ export function useAudioRecorderHook(storageKey: string) {
       });
 
       await recorder.prepareToRecordAsync();
-      recorder.record();
+      await recorder.record();
       setState('recording');
 
       // Auto-stop at 5-minute cap

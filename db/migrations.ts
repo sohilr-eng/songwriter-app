@@ -71,6 +71,11 @@ export const MIGRATIONS = [
   CREATE INDEX IF NOT EXISTS idx_snapshots_song    ON snapshots(song_id);
 
   CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
-  INSERT INTO schema_version (version) VALUES (1);
+  INSERT INTO schema_version (version)
+  SELECT 0
+  WHERE NOT EXISTS (SELECT 1 FROM schema_version);
+  `,
+  `
+  ALTER TABLE songs ADD COLUMN chord_display_mode TEXT NOT NULL DEFAULT 'both';
   `,
 ];
