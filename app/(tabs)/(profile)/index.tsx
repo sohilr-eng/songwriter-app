@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'rea
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
-import { useDisplayName } from '@/hooks/use-settings';
+import { useDisplayName, useProfileAvatarUri } from '@/hooks/use-settings';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { getAvatarUrl, saveProfile, uploadAvatar } from '@/lib/supabase/profile';
 import { AvatarPicker } from '@/components/profile/avatar-picker';
@@ -17,6 +17,7 @@ interface ProfileDraft {
   username: string;
   bio: string;
   avatarPath: string | null;
+  localAvatarUri: string | null;
   genreTags: string[];
   instruments: string[];
   websiteUrl: string;
@@ -31,6 +32,7 @@ function draftFromProfile(profile: NonNullable<ReturnType<typeof useAuth>['profi
     username: profile.username ?? '',
     bio: profile.bio ?? '',
     avatarPath: profile.avatarPath,
+    localAvatarUri: null,
     genreTags: profile.genreTags,
     instruments: profile.instruments,
     websiteUrl: profile.websiteUrl ?? '',
@@ -40,11 +42,12 @@ function draftFromProfile(profile: NonNullable<ReturnType<typeof useAuth>['profi
   };
 }
 
-const emptyDraft = (localDisplayName: string): ProfileDraft => ({
+const emptyDraft = (localDisplayName: string, localAvatarUri: string | null): ProfileDraft => ({
   displayName: localDisplayName,
   username: '',
   bio: '',
   avatarPath: null,
+  localAvatarUri,
   genreTags: [],
   instruments: [],
   websiteUrl: '',
@@ -57,29 +60,37 @@ export default function ProfileScreen() {
   const router = useRouter();
   const auth = useAuth();
   const { displayName: localDisplayName, setDisplayName } = useDisplayName();
+  const { avatarUri: localAvatarUri, setAvatarUri: setLocalAvatarUri } = useProfileAvatarUri();
 
-  const [draft, setDraft] = useState<ProfileDraft>(() => emptyDraft(''));
+  const [draft, setDraft] = useState<ProfileDraft>(() => emptyDraft('', null));
+  const [hasLocalChanges, setHasLocalChanges] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [passwordResetSent, setPasswordResetSent] = useState(false);
   const savedFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync draft when profile or local display name loads
+  // Initialize or refresh the draft from persisted data, but don't clobber in-progress edits.
   useEffect(() => {
+    if (hasLocalChanges) return;
+
     if (auth.profile) {
       setDraft(draftFromProfile(auth.profile, localDisplayName));
     } else {
-      setDraft(emptyDraft(localDisplayName));
+      setDraft(emptyDraft(localDisplayName, localAvatarUri));
     }
-  }, [auth.profile, localDisplayName]);
+  }, [auth.profile, hasLocalChanges, localAvatarUri, localDisplayName]);
 
   function patch(updates: Partial<ProfileDraft>) {
+    setHasLocalChanges(true);
     setDraft((d) => ({ ...d, ...updates }));
   }
 
   async function handleAvatarPick(uri: string) {
-    if (!auth.user) return;
+    if (!auth.user) {
+      patch({ localAvatarUri: uri });
+      return;
+    }
 
     const supabase = getSupabaseClient();
     if (!supabase) {
@@ -101,7 +112,15 @@ export default function ProfileScreen() {
   async function handleSave() {
     await setDisplayName(draft.displayName);
 
-    if (!auth.user) return;
+    if (!auth.user) {
+      await setLocalAvatarUri(draft.localAvatarUri);
+
+      if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
+      setSavedFlash(true);
+      savedFlashTimer.current = setTimeout(() => setSavedFlash(false), 2000);
+      setHasLocalChanges(false);
+      return;
+    }
 
     const supabase = getSupabaseClient();
     if (!supabase) {
@@ -124,6 +143,7 @@ export default function ProfileScreen() {
         spotifyUrl: draft.spotifyUrl,
         soundcloudUrl: draft.soundcloudUrl,
       });
+      setHasLocalChanges(false);
       await auth.refresh();
 
       if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
@@ -159,7 +179,11 @@ export default function ProfileScreen() {
 
   const supabase = getSupabaseClient();
   const avatarUrl =
-    supabase && draft.avatarPath ? getAvatarUrl(supabase, draft.avatarPath) : null;
+    !auth.user
+      ? draft.localAvatarUri
+      : supabase && draft.avatarPath
+        ? getAvatarUrl(supabase, draft.avatarPath)
+        : null;
 
   return (
     <ScrollView

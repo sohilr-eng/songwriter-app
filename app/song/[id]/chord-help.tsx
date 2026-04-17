@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChordDiagram } from '@/components/chord-diagram';
 import { ChordDiagramCard } from '@/components/chord-diagram-card';
 import { CustomChordEditorModal } from '@/components/custom-chord-editor-modal';
@@ -13,6 +14,7 @@ import type { CustomChord } from '@/types/chord';
 
 export default function ChordHelpScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
   const song = useSong(id);
   const { chords: customChords, deleteChord } = useCustomChords();
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -59,7 +61,8 @@ export default function ChordHelpScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: Colors.background }}
-      contentContainerStyle={{ padding: 20, gap: 24 }}
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={{ padding: 20, paddingBottom: 20 + insets.bottom + 40, gap: 24 }}
     >
       <View style={{ gap: 6 }}>
         <Text style={{ fontSize: 24, fontWeight: '800', color: Colors.textPrimary }}>
