@@ -1,8 +1,9 @@
 import { getDb } from './client';
 import { emit } from './events';
-import type { SectionRow } from '@/types/song';
+import { deleteSyncState, touchSyncState } from './sync-state';
+import type { SectionRecord } from '@/types/song-records';
 
-function rowToSection(row: any): SectionRow {
+function rowToSection(row: any): SectionRecord {
   return {
     id:                      row.id,
     songId:                  row.song_id,
@@ -13,7 +14,7 @@ function rowToSection(row: any): SectionRow {
   };
 }
 
-export async function getSectionsForSong(songId: string): Promise<SectionRow[]> {
+export async function getSectionsForSong(songId: string): Promise<SectionRecord[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<any>(
     'SELECT * FROM sections WHERE song_id = ? ORDER BY section_order ASC',
@@ -22,7 +23,7 @@ export async function getSectionsForSong(songId: string): Promise<SectionRow[]> 
   return rows.map(rowToSection);
 }
 
-export async function createSection(section: SectionRow): Promise<void> {
+export async function createSection(section: SectionRecord): Promise<void> {
   const db = await getDb();
   await db.runAsync(
     `INSERT INTO sections (id, song_id, label, section_order, section_recording_uri, section_recording_duration)
@@ -30,10 +31,12 @@ export async function createSection(section: SectionRow): Promise<void> {
     section.id, section.songId, section.label, section.sectionOrder,
     section.sectionRecordingUri, section.sectionRecordingDuration
   );
+  await touchSyncState('section', section.id, db);
+  await touchSyncState('song', section.songId, db);
   emit(`song:${section.songId}`);
 }
 
-export async function updateSection(id: string, songId: string, patch: Partial<SectionRow>): Promise<void> {
+export async function updateSection(id: string, songId: string, patch: Partial<SectionRecord>): Promise<void> {
   const db = await getDb();
   const fields: string[] = [];
   const values: any[] = [];
@@ -46,12 +49,16 @@ export async function updateSection(id: string, songId: string, patch: Partial<S
   values.push(id);
 
   await db.runAsync(`UPDATE sections SET ${fields.join(', ')} WHERE id = ?`, ...values);
+  await touchSyncState('section', id, db);
+  await touchSyncState('song', songId, db);
   emit(`song:${songId}`);
 }
 
 export async function deleteSection(id: string, songId: string): Promise<void> {
   const db = await getDb();
   await db.runAsync('DELETE FROM sections WHERE id = ?', id);
+  await deleteSyncState('section', id, db);
+  await touchSyncState('song', songId, db);
   emit(`song:${songId}`);
 }
 
@@ -63,7 +70,9 @@ export async function reorderSections(
   await db.withTransactionAsync(async () => {
     for (const { id, order } of ordered) {
       await db.runAsync('UPDATE sections SET section_order = ? WHERE id = ?', order, id);
+      await touchSyncState('section', id, db);
     }
+    await touchSyncState('song', songId, db);
   });
   emit(`song:${songId}`);
 }

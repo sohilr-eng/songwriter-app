@@ -1,23 +1,23 @@
 import { useSyncExternalStore } from 'react';
-import { getAllIdeas } from '@/db/brainstorm';
-import { subscribe } from '@/db/events';
-import type { BrainstormRow } from '@/types/song';
+import { subscribe } from '@/app-events';
+import { repositories } from '@/repositories';
+import type { BrainstormIdea } from '@/types/song';
 
-let cache: BrainstormRow[] = [];
+let cache: BrainstormIdea[] = [];
 let loaded = false;
 
 function subscribeToIdeas(cb: () => void) {
   const unsub = subscribe('brainstorm', () => {
-    getAllIdeas().then(rows => { cache = rows; cb(); });
+    repositories.brainstorm.list().then(rows => { cache = rows; cb(); });
   });
   if (!loaded) {
-    getAllIdeas().then(rows => { cache = rows; loaded = true; });
+    repositories.brainstorm.list().then(rows => { cache = rows; loaded = true; });
   }
   return unsub;
 }
 
 function getSnapshot() { return cache; }
 
-export function useBrainstorm(): BrainstormRow[] {
+export function useBrainstorm(): BrainstormIdea[] {
   return useSyncExternalStore(subscribeToIdeas, getSnapshot, getSnapshot);
 }

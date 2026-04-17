@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { createAlbum } from '@/db/albums';
+import { repositories } from '@/repositories';
 import { uuid } from '@/utils/uuid';
 import { Colors } from '@/constants/theme';
 
@@ -15,7 +15,7 @@ export default function NewAlbumScreen() {
     setSaving(true);
     const now = Date.now();
     const id = uuid();
-    await createAlbum({ id, title: title.trim(), artwork: null, createdAt: now });
+    await repositories.albums.create({ id, title: title.trim(), artwork: null, createdAt: now });
     router.dismiss();
     router.push(`/albums/${id}`);
   }

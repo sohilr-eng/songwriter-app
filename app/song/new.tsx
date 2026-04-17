@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { createSong } from '@/db/songs';
+import { repositories } from '@/repositories';
 import { uuid } from '@/utils/uuid';
 import { Colors } from '@/constants/theme';
 import type { SongKey } from '@/types/song';
@@ -25,7 +25,7 @@ export default function NewSongScreen() {
     }
     setSaving(true);
     const id = uuid();
-    await createSong({
+    await repositories.songs.create({
       id,
       title: title.trim(),
       key: key ?? null,

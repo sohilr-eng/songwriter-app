@@ -1,18 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  createCustomChord,
-  deleteCustomChord,
-  getAllCustomChords,
-  updateCustomChord,
-} from '@/db/custom-chords';
-import { subscribe } from '@/db/events';
+import { subscribe } from '@/app-events';
+import { repositories } from '@/repositories';
 import type { CustomChord } from '@/types/chord';
 
 export function useCustomChords() {
   const [chords, setChords] = useState<CustomChord[]>([]);
 
   const load = useCallback(async () => {
-    const all = await getAllCustomChords();
+    const all = await repositories.customChords.list();
     setChords(all);
   }, []);
 
@@ -25,8 +20,8 @@ export function useCustomChords() {
 
   return {
     chords,
-    createChord: createCustomChord,
-    updateChord: updateCustomChord,
-    deleteChord: deleteCustomChord,
+    createChord: repositories.customChords.create,
+    updateChord: repositories.customChords.update,
+    deleteChord: repositories.customChords.delete,
   };
 }

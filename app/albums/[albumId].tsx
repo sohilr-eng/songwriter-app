@@ -11,9 +11,9 @@ import { useSongs } from '@/hooks/use-songs';
 import { CoverImage } from '@/components/cover-image';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Shadows } from '@/constants/theme';
-import { updateAlbum, deleteAlbum, addSongToAlbum, removeSongFromAlbum, getSongsInAlbum } from '@/db/albums';
+import { repositories } from '@/repositories';
 import { pickCover } from '@/utils/pick-cover';
-import type { SongRow } from '@/types/song';
+import type { SongSummary } from '@/types/song';
 
 export default function AlbumDetailScreen() {
   const { albumId } = useLocalSearchParams<{ albumId: string }>();
@@ -25,7 +25,7 @@ export default function AlbumDetailScreen() {
 
   async function handleChangeArtwork() {
     const uri = await pickCover(albumId);
-    if (uri) await updateAlbum(albumId, { artwork: uri });
+    if (uri) await repositories.albums.update(albumId, { artwork: uri });
   }
 
   async function handleDelete() {
@@ -39,7 +39,7 @@ export default function AlbumDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            await deleteAlbum(albumId);
+            await repositories.albums.delete(albumId);
             router.back();
           },
         },
@@ -47,7 +47,7 @@ export default function AlbumDetailScreen() {
     );
   }
 
-  async function handleRemoveSong(song: SongRow) {
+  async function handleRemoveSong(song: SongSummary) {
     Alert.alert(
       'Remove from Album',
       `Remove "${song.title}" from this album?`,
@@ -56,16 +56,19 @@ export default function AlbumDetailScreen() {
         {
           text: 'Remove',
           style: 'destructive',
-          onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); removeSongFromAlbum(song.id, albumId); },
+          onPress: () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            void repositories.albums.removeSong(song.id, albumId);
+          },
         },
       ]
     );
   }
 
-  async function handleAddSong(song: SongRow) {
-    const current = await getSongsInAlbum(albumId);
+  async function handleAddSong(song: SongSummary) {
+    const current = await repositories.albums.listSongs(albumId);
     const nextOrder = current.length;
-    await addSongToAlbum(song.id, albumId, nextOrder);
+    await repositories.albums.addSong(song.id, albumId, nextOrder);
     setAddModalVisible(false);
   }
 

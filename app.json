@@ -9,7 +9,33 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UTExportedTypeDeclarations": [
+          {
+            "UTTypeIdentifier": "com.songwriter.song",
+            "UTTypeDescription": "Songwriter Song",
+            "UTTypeConformsTo": [
+              "public.data"
+            ],
+            "UTTypeTagSpecification": {
+              "public.filename-extension": [
+                "swsong"
+              ],
+              "public.mime-type": "application/x-songwriter-song"
+            }
+          }
+        ],
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "Songwriter Song",
+            "LSHandlerRank": "Owner",
+            "LSItemContentTypes": [
+              "com.songwriter.song"
+            ]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +45,21 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "mimeType": "application/x-songwriter-song"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "output": "static",
@@ -39,7 +79,12 @@
           }
         }
       ],
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Songwriter to access your microphone for voice memos."
+        }
+      ],
       "expo-sqlite"
     ],
     "experiments": {

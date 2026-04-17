@@ -1,8 +1,8 @@
 import { getDb } from './client';
 import { emit } from './events';
-import type { BrainstormRow } from '@/types/song';
+import type { BrainstormRecord } from '@/types/song-records';
 
-function rowToIdea(row: any): BrainstormRow {
+function rowToIdea(row: any): BrainstormRecord {
   return {
     id:           row.id,
     title:        row.title,
@@ -14,19 +14,19 @@ function rowToIdea(row: any): BrainstormRow {
   };
 }
 
-export async function getAllIdeas(): Promise<BrainstormRow[]> {
+export async function getAllIdeas(): Promise<BrainstormRecord[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<any>('SELECT * FROM brainstorm ORDER BY updated_at DESC');
   return rows.map(rowToIdea);
 }
 
-export async function getIdeaById(id: string): Promise<BrainstormRow | null> {
+export async function getIdeaById(id: string): Promise<BrainstormRecord | null> {
   const db = await getDb();
   const row = await db.getFirstAsync<any>('SELECT * FROM brainstorm WHERE id = ?', id);
   return row ? rowToIdea(row) : null;
 }
 
-export async function createIdea(idea: BrainstormRow): Promise<void> {
+export async function createIdea(idea: BrainstormRecord): Promise<void> {
   const db = await getDb();
   await db.runAsync(
     `INSERT INTO brainstorm (id, title, text, recording_uri, tags, created_at, updated_at)
@@ -36,7 +36,7 @@ export async function createIdea(idea: BrainstormRow): Promise<void> {
   emit('brainstorm');
 }
 
-export async function updateIdea(id: string, patch: Partial<BrainstormRow>): Promise<void> {
+export async function updateIdea(id: string, patch: Partial<BrainstormRecord>): Promise<void> {
   const db = await getDb();
   const now = Date.now();
   const fields: string[] = [];

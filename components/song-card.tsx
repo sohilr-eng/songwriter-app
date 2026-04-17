@@ -4,10 +4,10 @@ import { CoverImage } from './cover-image';
 import { IconSymbol } from './ui/icon-symbol';
 import { Colors, Shadows } from '@/constants/theme';
 import { formatDate } from '@/utils/format';
-import type { SongRow } from '@/types/song';
+import type { SongSummary } from '@/types/song';
 
 interface SongCardProps {
-  song: SongRow;
+  song: SongSummary;
   onDelete?: (id: string) => void;
 }
 

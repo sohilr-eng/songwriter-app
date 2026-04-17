@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { getSongsInAlbum } from '@/db/albums';
-import { subscribe } from '@/db/events';
-import type { SongRow } from '@/types/song';
+import { subscribe } from '@/app-events';
+import { repositories } from '@/repositories';
+import type { SongSummary } from '@/types/song';
 
-export function useAlbumSongs(albumId: string): SongRow[] {
-  const [songs, setSongs] = useState<SongRow[]>([]);
+export function useAlbumSongs(albumId: string): SongSummary[] {
+  const [songs, setSongs] = useState<SongSummary[]>([]);
 
   async function load() {
-    const rows = await getSongsInAlbum(albumId);
+    const rows = await repositories.albums.listSongs(albumId);
     setSongs(rows);
   }
 

@@ -3,6 +3,35 @@ import { MIGRATIONS } from './migrations';
 
 let _db: SQLite.SQLiteDatabase | null = null;
 
+async function columnExists(
+  db: SQLite.SQLiteDatabase,
+  tableName: string,
+  columnName: string
+): Promise<boolean> {
+  const rows = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${tableName})`);
+  return rows.some((row) => row.name === columnName);
+}
+
+async function runMigration(db: SQLite.SQLiteDatabase, index: number): Promise<void> {
+  switch (index) {
+    case 1: {
+      if (!(await columnExists(db, 'songs', 'chord_display_mode'))) {
+        await db.execAsync(MIGRATIONS[index]);
+      }
+      return;
+    }
+    case 5: {
+      if (!(await columnExists(db, 'songs', 'deleted_at'))) {
+        await db.execAsync('ALTER TABLE songs ADD COLUMN deleted_at INTEGER;');
+      }
+      await db.execAsync('CREATE INDEX IF NOT EXISTS idx_songs_deleted_at ON songs(deleted_at);');
+      return;
+    }
+    default:
+      await db.execAsync(MIGRATIONS[index]);
+  }
+}
+
 export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (_db) return _db;
 
@@ -24,7 +53,7 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   }
 
   for (let i = version; i < MIGRATIONS.length; i++) {
-    await db.execAsync(MIGRATIONS[i]);
+    await runMigration(db, i);
     await db.execAsync(`
       DELETE FROM schema_version;
       INSERT INTO schema_version (version) VALUES (${i + 1});

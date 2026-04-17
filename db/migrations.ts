@@ -92,4 +92,35 @@ export const MIGRATIONS = [
 
   CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_chords_name ON custom_chords(name);
   `,
+  `
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+  `,
+  `
+  CREATE TABLE IF NOT EXISTS sync_state (
+    entity_type TEXT NOT NULL CHECK (entity_type IN ('song', 'section', 'line')),
+    entity_id TEXT NOT NULL,
+    remote_id TEXT,
+    owner_id TEXT,
+    updated_by TEXT,
+    sync_status TEXT NOT NULL DEFAULT 'local_only'
+      CHECK (sync_status IN ('local_only', 'pending_push', 'synced', 'conflict')),
+    local_updated_at INTEGER NOT NULL DEFAULT 0,
+    remote_updated_at INTEGER,
+    last_synced_at INTEGER,
+    sync_version INTEGER NOT NULL DEFAULT 0,
+    deleted_at INTEGER,
+    last_error TEXT,
+    PRIMARY KEY (entity_type, entity_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_sync_state_status ON sync_state(sync_status);
+  CREATE INDEX IF NOT EXISTS idx_sync_state_owner ON sync_state(owner_id);
+  `,
+  `
+  ALTER TABLE songs ADD COLUMN deleted_at INTEGER;
+  CREATE INDEX IF NOT EXISTS idx_songs_deleted_at ON songs(deleted_at);
+  `,
 ];

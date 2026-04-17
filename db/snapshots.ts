@@ -1,8 +1,9 @@
 import { getDb } from './client';
 import { emit } from './events';
-import type { SnapshotRow, Song } from '@/types/song';
+import { deleteSyncState, touchSyncState, upsertSyncState } from './sync-state';
+import type { Snapshot, Song } from '@/types/song';
 
-function rowToSnapshot(row: any): SnapshotRow {
+function rowToSnapshot(row: any): Snapshot {
   return {
     id:        row.id,
     songId:    row.song_id,
@@ -12,7 +13,7 @@ function rowToSnapshot(row: any): SnapshotRow {
   };
 }
 
-export async function getSnapshotsForSong(songId: string): Promise<SnapshotRow[]> {
+export async function getSnapshotsForSong(songId: string): Promise<Snapshot[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<any>(
     'SELECT * FROM snapshots WHERE song_id = ? ORDER BY created_at DESC',
@@ -54,11 +55,22 @@ export function parseSnapshotPayload(payload: string): Song | null {
  * Replaces all sections and lines for a song with the snapshot's data.
  * Runs in a single transaction so either everything succeeds or nothing changes.
  */
-export async function restoreSnapshot(snapshot: SnapshotRow, songId: string): Promise<void> {
+export async function restoreSnapshot(snapshot: Snapshot, songId: string): Promise<void> {
   const song = parseSnapshotPayload(snapshot.payload);
   if (!song) throw new Error('Invalid snapshot payload');
 
   const db = await getDb();
+  const existingSectionRows = await db.getAllAsync<{ id: string }>(
+    'SELECT id FROM sections WHERE song_id = ?',
+    songId
+  );
+  const existingLineRows = await db.getAllAsync<{ id: string }>(
+    `SELECT lyric_lines.id
+     FROM lyric_lines
+     INNER JOIN sections ON sections.id = lyric_lines.section_id
+     WHERE sections.song_id = ?`,
+    songId
+  );
 
   await db.withTransactionAsync(async () => {
     // Remove current sections (CASCADE deletes lines automatically)
@@ -77,6 +89,17 @@ export async function restoreSnapshot(snapshot: SnapshotRow, songId: string): Pr
         section.sectionRecordingUri,
         section.sectionRecordingDuration,
       );
+      await upsertSyncState(
+        {
+          entityType: 'section',
+          entityId: section.id,
+          syncStatus: 'local_only',
+          localUpdatedAt: Date.now(),
+          deletedAt: null,
+          lastError: null,
+        },
+        db
+      );
 
       for (const line of section.lines) {
         await db.runAsync(
@@ -93,8 +116,33 @@ export async function restoreSnapshot(snapshot: SnapshotRow, songId: string): Pr
           line.lineRecordingUri,
           line.lineRecordingDuration,
         );
+        await upsertSyncState(
+          {
+            entityType: 'line',
+            entityId: line.id,
+            syncStatus: 'local_only',
+            localUpdatedAt: Date.now(),
+            deletedAt: null,
+            lastError: null,
+          },
+          db
+        );
       }
     }
+
+    for (const section of existingSectionRows) {
+      if (!song.sections.some((nextSection) => nextSection.id === section.id)) {
+        await deleteSyncState('section', section.id, db);
+      }
+    }
+
+    for (const line of existingLineRows) {
+      if (!song.sections.some((section) => section.lines.some((nextLine) => nextLine.id === line.id))) {
+        await deleteSyncState('line', line.id, db);
+      }
+    }
+
+    await touchSyncState('song', songId, db);
   });
 
   emit(`song:${songId}`);

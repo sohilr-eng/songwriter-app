@@ -5,23 +5,20 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSong } from '@/hooks/use-song';
-import { subscribe } from '@/db/events';
-import {
-  getSnapshotsForSong, createSnapshot,
-  deleteSnapshot, restoreSnapshot,
-} from '@/db/snapshots';
+import { subscribe } from '@/app-events';
+import { repositories } from '@/repositories';
 import { SnapshotListRow } from '@/components/snapshot-row';
 import { EmptyState } from '@/components/empty-state';
 import { Colors } from '@/constants/theme';
 import { uuid } from '@/utils/uuid';
-import type { SnapshotRow } from '@/types/song';
+import type { Snapshot } from '@/types/song';
 
 export default function SnapshotsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const song = useSong(id);
 
-  const [snapshots, setSnapshots] = useState<SnapshotRow[]>([]);
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [saving, setSaving] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
@@ -30,7 +27,7 @@ export default function SnapshotsScreen() {
   const [labelDraft, setLabelDraft] = useState('');
 
   async function loadSnapshots() {
-    const rows = await getSnapshotsForSong(id);
+    const rows = await repositories.snapshots.listForSong(id);
     setSnapshots(rows);
   }
 
@@ -45,7 +42,7 @@ export default function SnapshotsScreen() {
     if (!song) return;
     setSaving(true);
     try {
-      await createSnapshot(uuid(), id, labelDraft.trim() || null, song);
+      await repositories.snapshots.create(uuid(), id, labelDraft.trim() || null, song);
       setLabelDraft('');
       setLabelModalVisible(false);
     } finally {
@@ -53,10 +50,10 @@ export default function SnapshotsScreen() {
     }
   }
 
-  async function handleRestore(snapshot: SnapshotRow) {
+  async function handleRestore(snapshot: Snapshot) {
     setRestoring(true);
     try {
-      await restoreSnapshot(snapshot, id);
+      await repositories.snapshots.restore(snapshot, id);
       router.dismiss();
     } catch {
       Alert.alert('Restore failed', 'Could not restore this version.');
@@ -65,8 +62,8 @@ export default function SnapshotsScreen() {
     }
   }
 
-  async function handleDelete(snapshot: SnapshotRow) {
-    await deleteSnapshot(snapshot.id, id);
+  async function handleDelete(snapshot: Snapshot) {
+    await repositories.snapshots.delete(snapshot.id, id);
   }
 
   return (

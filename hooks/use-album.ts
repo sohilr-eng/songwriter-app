@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react';
-import { getAlbumById, getSongsInAlbum } from '@/db/albums';
-import { subscribe } from '@/db/events';
-import type { AlbumRow, SongRow } from '@/types/song';
+import { subscribe } from '@/app-events';
+import { repositories } from '@/repositories';
+import type { Album, SongSummary } from '@/types/song';
 
 export interface AlbumDetail {
-  album: AlbumRow;
-  songs: SongRow[];
+  album: Album;
+  songs: SongSummary[];
 }
 
 export function useAlbum(id: string): AlbumDetail | null {
   const [detail, setDetail] = useState<AlbumDetail | null>(null);
 
   async function load() {
-    const album = await getAlbumById(id);
+    const album = await repositories.albums.getById(id);
     if (!album) return;
-    const songs = await getSongsInAlbum(id);
+    const songs = await repositories.albums.listSongs(id);
     setDetail({ album, songs });
   }
 

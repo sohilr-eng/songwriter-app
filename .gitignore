@@ -32,6 +32,13 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+
+# Claude Code workspace files
+.claude/
+
+# Agent tooling
+visual aids for agents/
 
 # typescript
 *.tsbuildinfo

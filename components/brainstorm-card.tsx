@@ -3,10 +3,10 @@ import { useRouter } from 'expo-router';
 import { Colors, Shadows } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { formatDate } from '@/utils/format';
-import type { BrainstormRow } from '@/types/song';
+import type { BrainstormIdea } from '@/types/song';
 
 interface BrainstormCardProps {
-  idea: BrainstormRow;
+  idea: BrainstormIdea;
 }
 
 export function BrainstormCard({ idea }: BrainstormCardProps) {

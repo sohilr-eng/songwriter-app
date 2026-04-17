@@ -7,8 +7,8 @@ import { SectionLabelInput } from './section-label-input';
 import { RecordingStrip } from './recording-strip';
 import { IconSymbol } from './ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { createLine, deleteLine, reorderLines } from '@/db/lines';
-import { createSection, updateSection, deleteSection } from '@/db/sections';
+import { repositories } from '@/repositories';
+import { getSectionRecordingStorageKey } from '@/lib/audio/recordings';
 import { computeOrder } from '@/utils/reorder';
 import { uuid } from '@/utils/uuid';
 import type { Section, LyricLine } from '@/types/song';
@@ -42,21 +42,21 @@ export function SectionBlock({
       lineRecordingDuration: null,
       chordAnnotations: [],
     };
-    await createLine(newLine, songId);
+    await repositories.songs.createLine(newLine, songId);
   }
 
   async function handleDeleteLine(line: LyricLine) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     // Store full line data before deleting so we can restore it
     const snapshot = { ...line };
-    await deleteLine(line.id, songId);
+    await repositories.songs.deleteLine(line.id, songId);
     onShowUndo('Line deleted', async () => {
-      await createLine(snapshot, songId);
+      await repositories.songs.createLine(snapshot, songId);
     });
   }
 
   async function handleReorderLines(newData: LyricLine[]) {
-    await reorderLines(section.id, songId, computeOrder(newData));
+    await repositories.songs.reorderLines(section.id, songId, computeOrder(newData));
   }
 
   async function handleDeleteSection() {
@@ -73,12 +73,12 @@ export function SectionBlock({
             // Capture full section + lines before deleting
             const sectionSnapshot = { ...section };
             const linesSnapshot = section.lines.map(l => ({ ...l }));
-            await deleteSection(section.id, songId);
+            await repositories.songs.deleteSection(section.id, songId);
             onSectionDeleted(section.id, section.label);
             onShowUndo(`"${section.label}" deleted`, async () => {
-              await createSection(sectionSnapshot);
+              await repositories.songs.createSection(sectionSnapshot);
               for (const line of linesSnapshot) {
-                await createLine(line, songId);
+                await repositories.songs.createLine(line, songId);
               }
             });
           },
@@ -88,18 +88,18 @@ export function SectionBlock({
   }
 
   async function handleRenameSection(label: string) {
-    await updateSection(section.id, songId, { label });
+    await repositories.songs.updateSection(section.id, songId, { label });
   }
 
   async function handleSaveRecording(uri: string, duration: number) {
-    await updateSection(section.id, songId, {
+    await repositories.songs.updateSection(section.id, songId, {
       sectionRecordingUri: uri,
       sectionRecordingDuration: duration,
     });
   }
 
   async function handleDeleteRecording() {
-    await updateSection(section.id, songId, {
+    await repositories.songs.updateSection(section.id, songId, {
       sectionRecordingUri: null,
       sectionRecordingDuration: null,
     });
@@ -197,7 +197,7 @@ export function SectionBlock({
 
         {/* Section voice memo */}
         <RecordingStrip
-          storageKey={'section-' + section.id}
+          storageKey={getSectionRecordingStorageKey(section.id)}
           existingUri={section.sectionRecordingUri}
           onSave={handleSaveRecording}
           onDelete={handleDeleteRecording}

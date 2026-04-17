@@ -56,6 +56,14 @@ const MAPPING: IconMapping = {
   'arrow.up.arrow.down':                'swap-vert',
   'nosign':                             'block',
   'doc.on.doc':                         'content-copy',
+
+  // Profile
+  'person.fill':                         'person',
+  'person.crop.circle':                  'account-circle',
+  'link':                                'link',
+  'globe':                               'language',
+  'gearshape':                           'settings',
+  'gearshape.fill':                      'settings',
 };
 
 export function IconSymbol({

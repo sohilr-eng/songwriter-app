@@ -36,7 +36,7 @@ export function SectionLabelInput({ value, onCommit }: SectionLabelInputProps) {
         textTransform: 'uppercase',
         letterSpacing: 0.8,
         padding: 0,
-        fontFamily: Fonts?.ios?.sans ?? undefined,
+        fontFamily: Fonts.sans,
       }}
       selectTextOnFocus
     />

@@ -5,6 +5,7 @@ import { useAudioPlayerHook } from '@/hooks/use-audio-player';
 import { RecordingPulse } from './waveform-bar';
 import { IconSymbol } from './ui/icon-symbol';
 import { Colors } from '@/constants/theme';
+import { getLineRecordingStorageKey } from '@/lib/audio/recordings';
 import { formatDuration } from '@/utils/format';
 
 interface LineRecordingButtonProps {
@@ -22,10 +23,9 @@ export function LineRecordingButton({
   onSave,
   onDelete,
 }: LineRecordingButtonProps) {
-  const storageKey = 'line-' + lineId;
+  const storageKey = getLineRecordingStorageKey(lineId);
   const recorder = useAudioRecorderHook(storageKey);
   const activeUri = existingUri ?? recorder.savedUri;
-  const player    = useAudioPlayerHook(activeUri);
 
   const hasRecording = !!activeUri;
 
@@ -34,9 +34,6 @@ export function LineRecordingButton({
       // Stop and save
       const uri = await recorder.stop();
       if (uri) await onSave(uri, recorder.currentTime);
-    } else if (hasRecording) {
-      // Play / pause
-      player.togglePlayPause();
     } else {
       // Start recording
       await recorder.start();
@@ -65,27 +62,13 @@ export function LineRecordingButton({
 
   // Has a saved recording
   if (hasRecording) {
+    if (!activeUri) return null;
     return (
-      <Pressable
-        onPress={handlePress}
-        onLongPress={handleLongPress}
-        delayLongPress={500}
-        style={styles.container}
-        hitSlop={8}
-      >
-        <View style={styles.playDot}>
-          <IconSymbol
-            name={player.isPlaying ? 'pause.fill' : 'play.fill'}
-            size={10}
-            color={Colors.accentForeground}
-          />
-        </View>
-        <Text style={styles.time}>
-          {player.isPlaying
-            ? formatDuration(player.currentTime)
-            : formatDuration(existingDuration ?? player.duration)}
-        </Text>
-      </Pressable>
+      <RecordedLineButton
+        uri={activeUri}
+        existingDuration={existingDuration}
+        onDelete={handleLongPress}
+      />
     );
   }
 
@@ -93,6 +76,43 @@ export function LineRecordingButton({
   return (
     <Pressable onPress={handlePress} style={styles.container} hitSlop={8}>
       <IconSymbol name="mic" size={15} color={Colors.textTertiary} />
+    </Pressable>
+  );
+}
+
+function RecordedLineButton({
+  uri,
+  existingDuration,
+  onDelete,
+}: {
+  uri: string;
+  existingDuration: number | null;
+  onDelete: () => Promise<void>;
+}) {
+  const player = useAudioPlayerHook(uri);
+
+  return (
+    <Pressable
+      onPress={player.togglePlayPause}
+      onLongPress={() => {
+        void onDelete();
+      }}
+      delayLongPress={500}
+      style={styles.container}
+      hitSlop={8}
+    >
+      <View style={styles.playDot}>
+        <IconSymbol
+          name={player.isPlaying ? 'pause.fill' : 'play.fill'}
+          size={10}
+          color={Colors.accentForeground}
+        />
+      </View>
+      <Text style={styles.time}>
+        {player.isPlaying
+          ? formatDuration(player.currentTime)
+          : formatDuration(existingDuration ?? player.duration)}
+      </Text>
     </Pressable>
   );
 }

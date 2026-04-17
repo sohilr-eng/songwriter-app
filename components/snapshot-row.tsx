@@ -2,12 +2,12 @@ import { View, Text, Pressable, Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Colors, Shadows } from '@/constants/theme';
 import { formatDate } from '@/utils/format';
-import type { SnapshotRow } from '@/types/song';
+import type { Snapshot } from '@/types/song';
 
 interface SnapshotRowProps {
-  snapshot: SnapshotRow;
-  onRestore: (snapshot: SnapshotRow) => void;
-  onDelete: (snapshot: SnapshotRow) => void;
+  snapshot: Snapshot;
+  onRestore: (snapshot: Snapshot) => void;
+  onDelete: (snapshot: Snapshot) => void;
 }
 
 export function SnapshotListRow({ snapshot, onRestore, onDelete }: SnapshotRowProps) {

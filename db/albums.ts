@@ -1,8 +1,8 @@
 import { getDb } from './client';
 import { emit } from './events';
-import type { AlbumRow, SongRow } from '@/types/song';
+import type { AlbumRecord, SongRecord } from '@/types/song-records';
 
-function rowToAlbum(row: any): AlbumRow {
+function rowToAlbum(row: any): AlbumRecord {
   return {
     id:        row.id,
     title:     row.title,
@@ -11,19 +11,19 @@ function rowToAlbum(row: any): AlbumRow {
   };
 }
 
-export async function getAllAlbums(): Promise<AlbumRow[]> {
+export async function getAllAlbums(): Promise<AlbumRecord[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<any>('SELECT * FROM albums ORDER BY created_at DESC');
   return rows.map(rowToAlbum);
 }
 
-export async function getAlbumById(id: string): Promise<AlbumRow | null> {
+export async function getAlbumById(id: string): Promise<AlbumRecord | null> {
   const db = await getDb();
   const row = await db.getFirstAsync<any>('SELECT * FROM albums WHERE id = ?', id);
   return row ? rowToAlbum(row) : null;
 }
 
-export async function createAlbum(album: AlbumRow): Promise<void> {
+export async function createAlbum(album: AlbumRecord): Promise<void> {
   const db = await getDb();
   await db.runAsync(
     'INSERT INTO albums (id, title, artwork, created_at) VALUES (?, ?, ?, ?)',
@@ -32,7 +32,7 @@ export async function createAlbum(album: AlbumRow): Promise<void> {
   emit('albums');
 }
 
-export async function updateAlbum(id: string, patch: Partial<Omit<AlbumRow, 'id' | 'createdAt'>>): Promise<void> {
+export async function updateAlbum(id: string, patch: Partial<Omit<AlbumRecord, 'id' | 'createdAt'>>): Promise<void> {
   const db = await getDb();
   const fields: string[] = [];
   const values: any[] = [];
@@ -54,7 +54,7 @@ export async function deleteAlbum(id: string): Promise<void> {
   emit('albums');
 }
 
-export async function getSongsInAlbum(albumId: string): Promise<SongRow[]> {
+export async function getSongsInAlbum(albumId: string): Promise<SongRecord[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<any>(
     `SELECT s.*, sa.track_order FROM songs s
@@ -71,6 +71,7 @@ export async function getSongsInAlbum(albumId: string): Promise<SongRow[]> {
     tags:      row.tags ?? null,
     coverUri:  row.cover_uri ?? null,
     createdBy: row.created_by ?? null,
+    chordDisplayMode: row.chord_display_mode ?? 'both',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));

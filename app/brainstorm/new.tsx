@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { createIdea } from '@/db/brainstorm';
+import { repositories } from '@/repositories';
 import { uuid } from '@/utils/uuid';
 import { Colors } from '@/constants/theme';
 
@@ -15,7 +15,7 @@ export default function NewIdeaScreen() {
     setSaving(true);
     const now = Date.now();
     const id = uuid();
-    await createIdea({
+    await repositories.brainstorm.create({
       id,
       title: title.trim() || 'Untitled Idea',
       text: text.trim(),

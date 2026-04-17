@@ -8,10 +8,7 @@ import { useIdea } from '@/hooks/use-idea';
 import { RecordingStrip } from '@/components/recording-strip';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { updateIdea, deleteIdea } from '@/db/brainstorm';
-import { createSong } from '@/db/songs';
-import { createSection } from '@/db/sections';
-import { createLine } from '@/db/lines';
+import { repositories } from '@/repositories';
 import { uuid } from '@/utils/uuid';
 
 const AUTOSAVE_DELAY = 400;
@@ -29,14 +26,14 @@ export default function IdeaEditorScreen() {
   const saveTitle = useCallback((value: string) => {
     if (titleTimer.current) clearTimeout(titleTimer.current);
     titleTimer.current = setTimeout(() => {
-      updateIdea(id, { title: value.trim() || 'Untitled Idea' });
+      void repositories.brainstorm.update(id, { title: value.trim() || 'Untitled Idea' });
     }, AUTOSAVE_DELAY);
   }, [id]);
 
   const saveText = useCallback((value: string) => {
     if (textTimer.current) clearTimeout(textTimer.current);
     textTimer.current = setTimeout(() => {
-      updateIdea(id, { text: value });
+      void repositories.brainstorm.update(id, { text: value });
     }, AUTOSAVE_DELAY);
   }, [id]);
 
@@ -49,11 +46,12 @@ export default function IdeaEditorScreen() {
   }, []);
 
   async function handleSaveRecording(uri: string, duration: number) {
-    await updateIdea(id, { recordingUri: uri });
+    void duration;
+    await repositories.brainstorm.update(id, { recordingUri: uri });
   }
 
   async function handleDeleteRecording() {
-    await updateIdea(id, { recordingUri: null });
+    await repositories.brainstorm.update(id, { recordingUri: null });
   }
 
   async function handleDelete() {
@@ -67,7 +65,7 @@ export default function IdeaEditorScreen() {
           style: 'destructive',
           onPress: async () => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            await deleteIdea(id);
+            await repositories.brainstorm.delete(id);
             router.back();
           },
         },
@@ -89,7 +87,7 @@ export default function IdeaEditorScreen() {
             const sectionId = uuid();
 
             // Create the song
-            await createSong({
+            await repositories.songs.create({
               id: songId,
               title: idea.title,
               key: null,
@@ -106,7 +104,7 @@ export default function IdeaEditorScreen() {
               .map(l => l.trim())
               .filter(Boolean);
 
-            await createSection({
+            await repositories.songs.createSection({
               id: sectionId,
               songId,
               label: 'Verse',
@@ -116,7 +114,7 @@ export default function IdeaEditorScreen() {
             });
 
             for (let i = 0; i < rawLines.length; i++) {
-              await createLine(
+              await repositories.songs.createLine(
                 {
                   id: uuid(),
                   sectionId,

@@ -1,3 +1,13 @@
+import type {
+  AlbumRecord,
+  BrainstormRecord,
+  LyricLineRecord,
+  SectionRecord,
+  SnapshotRecord,
+  SongAlbumRecord,
+  SongRecord,
+} from '@/types/song-records';
+
 export type SongKey =
   | 'C' | 'C#' | 'Db' | 'D' | 'D#' | 'Eb' | 'E' | 'F'
   | 'F#' | 'Gb' | 'G' | 'G#' | 'Ab' | 'A' | 'A#' | 'Bb' | 'B'
@@ -7,90 +17,37 @@ export type SongKey =
 
 export type ChordDisplayMode = 'name' | 'diagram' | 'both';
 
-// ── SQLite row types ──────────────────────────────────────────────────────
+export interface Album extends AlbumRecord {}
 
-export interface AlbumRow {
-  id: string;
-  title: string;
-  artwork: string | null;    // local file URI
-  createdAt: number;
-}
+export interface SongSummary extends SongRecord {}
 
-export interface SongRow {
-  id: string;
-  title: string;
-  key: SongKey | null;
-  bpm: number | null;
-  tags: string | null;       // comma-separated
-  coverUri: string | null;   // local file URI from camera roll
-  createdBy: string | null;  // stub for future collaboration
-  chordDisplayMode: ChordDisplayMode;
-  createdAt: number;
-  updatedAt: number;
-}
+export interface Snapshot extends SnapshotRecord {}
 
-export interface SongAlbumRow {
-  songId: string;
-  albumId: string;
-  trackOrder: number;
-}
-
-export interface SectionRow {
-  id: string;
-  songId: string;
-  label: string;             // freeform — "Verse 1", "My Hook", etc.
-  sectionOrder: number;
-  sectionRecordingUri: string | null;
-  sectionRecordingDuration: number | null;
-}
-
-export interface LyricLineRow {
-  id: string;
-  sectionId: string;
-  lineOrder: number;
-  text: string;
-  chords: string | null;     // JSON: ChordAnnotation[]
-  memo: string | null;       // text note on this line
-  lineRecordingUri: string | null;
-  lineRecordingDuration: number | null;
-}
-
-export interface SnapshotRow {
-  id: string;
-  songId: string;
-  label: string | null;
-  createdAt: number;
-  payload: string;           // JSON of full Song
-}
-
-export interface BrainstormRow {
-  id: string;
-  title: string;
-  text: string;
-  recordingUri: string | null;
-  tags: string | null;
-  createdAt: number;
-  updatedAt: number;
-}
-
-// ── Chord annotation ──────────────────────────────────────────────────────
+export interface BrainstormIdea extends BrainstormRecord {}
 
 export interface ChordAnnotation {
   chord: string;
-  charOffset: number;        // index into the line's text string
+  charOffset: number;
 }
 
-// ── Enriched types used in UI ─────────────────────────────────────────────
-
-export interface LyricLine extends LyricLineRow {
+export interface LyricLine extends LyricLineRecord {
   chordAnnotations: ChordAnnotation[];
 }
 
-export interface Section extends SectionRow {
+export interface Section extends SectionRecord {
   lines: LyricLine[];
 }
 
-export interface Song extends SongRow {
+export interface Song extends SongSummary {
   sections: Section[];
   tagsArray: string[];
 }
+
+// Temporary compatibility aliases during the phase 1 alpha refactor.
+export type AlbumRow = Album;
+export type SongRow = SongSummary;
+export type SongAlbumRow = SongAlbumRecord;
+export type SectionRow = SectionRecord;
+export type LyricLineRow = LyricLineRecord;
+export type SnapshotRow = Snapshot;
+export type BrainstormRow = BrainstormIdea;

@@ -1,8 +1,9 @@
 import { getDb } from './client';
 import { emit } from './events';
-import type { LyricLineRow } from '@/types/song';
+import { deleteSyncState, touchSyncState } from './sync-state';
+import type { LyricLineRecord } from '@/types/song-records';
 
-function rowToLine(row: any): LyricLineRow {
+function rowToLine(row: any): LyricLineRecord {
   return {
     id:                    row.id,
     sectionId:             row.section_id,
@@ -15,7 +16,7 @@ function rowToLine(row: any): LyricLineRow {
   };
 }
 
-export async function getLinesForSection(sectionId: string): Promise<LyricLineRow[]> {
+export async function getLinesForSection(sectionId: string): Promise<LyricLineRecord[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<any>(
     'SELECT * FROM lyric_lines WHERE section_id = ? ORDER BY line_order ASC',
@@ -24,7 +25,7 @@ export async function getLinesForSection(sectionId: string): Promise<LyricLineRo
   return rows.map(rowToLine);
 }
 
-export async function createLine(line: LyricLineRow, songId: string): Promise<void> {
+export async function createLine(line: LyricLineRecord, songId: string): Promise<void> {
   const db = await getDb();
   await db.runAsync(
     `INSERT INTO lyric_lines (id, section_id, line_order, text, chords, memo, line_recording_uri, line_recording_duration)
@@ -32,13 +33,15 @@ export async function createLine(line: LyricLineRow, songId: string): Promise<vo
     line.id, line.sectionId, line.lineOrder, line.text,
     line.chords, line.memo, line.lineRecordingUri, line.lineRecordingDuration
   );
+  await touchSyncState('line', line.id, db);
+  await touchSyncState('song', songId, db);
   emit(`song:${songId}`);
 }
 
 export async function updateLine(
   id: string,
   songId: string,
-  patch: Partial<LyricLineRow>
+  patch: Partial<LyricLineRecord>
 ): Promise<void> {
   const db = await getDb();
   const fields: string[] = [];
@@ -54,12 +57,16 @@ export async function updateLine(
   values.push(id);
 
   await db.runAsync(`UPDATE lyric_lines SET ${fields.join(', ')} WHERE id = ?`, ...values);
+  await touchSyncState('line', id, db);
+  await touchSyncState('song', songId, db);
   emit(`song:${songId}`);
 }
 
 export async function deleteLine(id: string, songId: string): Promise<void> {
   const db = await getDb();
   await db.runAsync('DELETE FROM lyric_lines WHERE id = ?', id);
+  await deleteSyncState('line', id, db);
+  await touchSyncState('song', songId, db);
   emit(`song:${songId}`);
 }
 
@@ -72,7 +79,9 @@ export async function reorderLines(
   await db.withTransactionAsync(async () => {
     for (const { id, order } of ordered) {
       await db.runAsync('UPDATE lyric_lines SET line_order = ? WHERE id = ?', order, id);
+      await touchSyncState('line', id, db);
     }
+    await touchSyncState('song', songId, db);
   });
   emit(`song:${songId}`);
 }

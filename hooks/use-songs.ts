@@ -1,9 +1,9 @@
 import { useSyncExternalStore, useEffect } from 'react';
-import { getAllSongs } from '@/db/songs';
-import { subscribe } from '@/db/events';
-import type { SongRow } from '@/types/song';
+import { subscribe } from '@/app-events';
+import { repositories } from '@/repositories';
+import type { SongSummary } from '@/types/song';
 
-let cache: SongRow[] = [];
+let cache: SongSummary[] = [];
 let listeners: Set<() => void> = new Set();
 
 function notifyAll() {
@@ -11,7 +11,7 @@ function notifyAll() {
 }
 
 function load() {
-  getAllSongs().then(rows => {
+  repositories.songs.list().then(rows => {
     cache = rows;
     notifyAll();
   });
@@ -30,7 +30,7 @@ function subscribeToSongs(cb: () => void) {
   listeners.add(cb);
   ensureLoaded();
   const unsub = subscribe('songs', () => {
-    getAllSongs().then(rows => {
+    repositories.songs.list().then(rows => {
       cache = rows;
       notifyAll();
     });
@@ -45,6 +45,6 @@ function getSnapshot() {
   return cache;
 }
 
-export function useSongs(): SongRow[] {
+export function useSongs(): SongSummary[] {
   return useSyncExternalStore(subscribeToSongs, getSnapshot, getSnapshot);
 }

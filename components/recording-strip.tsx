@@ -23,7 +23,6 @@ export function RecordingStrip({
   onDelete,
 }: RecordingStripProps) {
   const recorder = useAudioRecorderHook(storageKey);
-  const player   = useAudioPlayerHook(existingUri ?? recorder.savedUri);
 
   const hasRecording = !!(existingUri || recorder.savedUri);
 
@@ -75,28 +74,13 @@ export function RecordingStrip({
 
   // ── Has recording ────────────────────────────────────────────────────────
   if (hasRecording) {
+    const activeUri = existingUri ?? recorder.savedUri;
+    if (!activeUri) return null;
     return (
-      <View style={styles.strip}>
-        <Pressable onPress={player.togglePlayPause} style={styles.playBtn} hitSlop={8}>
-          <IconSymbol
-            name={player.isPlaying ? 'pause.fill' : 'play.fill'}
-            size={16}
-            color={Colors.accentForeground}
-          />
-        </Pressable>
-
-        <PlaybackBar progress={player.progress} />
-
-        <Text style={styles.time}>
-          {player.isPlaying
-            ? formatDuration(player.currentTime)
-            : formatDuration(player.duration)}
-        </Text>
-
-        <Pressable onPress={handleDelete} hitSlop={10} style={{ padding: 4 }}>
-          <IconSymbol name="trash" size={16} color={Colors.textTertiary} />
-        </Pressable>
-      </View>
+      <RecordedStrip
+        uri={activeUri}
+        onDelete={handleDelete}
+      />
     );
   }
 
@@ -111,6 +95,40 @@ export function RecordingStrip({
         {recorder.error ?? 'Record voice memo'}
       </Text>
     </Pressable>
+  );
+}
+
+function RecordedStrip({
+  uri,
+  onDelete,
+}: {
+  uri: string;
+  onDelete: () => Promise<void>;
+}) {
+  const player = useAudioPlayerHook(uri);
+
+  return (
+    <View style={styles.strip}>
+      <Pressable onPress={player.togglePlayPause} style={styles.playBtn} hitSlop={8}>
+        <IconSymbol
+          name={player.isPlaying ? 'pause.fill' : 'play.fill'}
+          size={16}
+          color={Colors.accentForeground}
+        />
+      </Pressable>
+
+      <PlaybackBar progress={player.progress} />
+
+      <Text style={styles.time}>
+        {player.isPlaying
+          ? formatDuration(player.currentTime)
+          : formatDuration(player.duration)}
+      </Text>
+
+      <Pressable onPress={() => { void onDelete(); }} hitSlop={10} style={{ padding: 4 }}>
+        <IconSymbol name="trash" size={16} color={Colors.textTertiary} />
+      </Pressable>
+    </View>
   );
 }
 

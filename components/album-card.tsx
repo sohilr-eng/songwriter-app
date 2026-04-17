@@ -3,10 +3,10 @@ import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { IconSymbol } from './ui/icon-symbol';
 import { Colors, Shadows } from '@/constants/theme';
-import type { AlbumRow } from '@/types/song';
+import type { Album } from '@/types/song';
 
 interface AlbumCardProps {
-  album: AlbumRow;
+  album: Album;
   songCount?: number;
 }
 

@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, SafeAreaView } from 'react-native';
+import { Alert, View, Text, ScrollView, Pressable, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Sharing from 'expo-sharing';
 import { useSong } from '@/hooks/use-song';
 import { SectionBlock } from '@/components/section-block';
 import { UndoBar } from '@/components/undo-bar';
@@ -11,9 +12,11 @@ import { SegmentedControl } from '@/components/segmented-control';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ChordDisplayProvider } from '@/contexts/chord-display-context';
 import { Colors } from '@/constants/theme';
-import { createSection, reorderSections } from '@/db/sections';
-import { updateSong } from '@/db/songs';
+import { useCustomChords } from '@/hooks/use-custom-chords';
+import { useDisplayName } from '@/hooks/use-settings';
+import { repositories } from '@/repositories';
 import { computeOrder } from '@/utils/reorder';
+import { buildSharePayload, readAudioForSong, writeShareFile } from '@/utils/share-codec';
 import { uuid } from '@/utils/uuid';
 import type { ChordDisplayMode, Section } from '@/types/song';
 
@@ -27,6 +30,8 @@ export default function SongEditorScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const song = useSong(id);
+  const { chords: customChords } = useCustomChords();
+  const { displayName } = useDisplayName();
 
   const [undoVisible, setUndoVisible] = useState(false);
   const [undoMessage, setUndoMessage] = useState('');
@@ -48,11 +53,11 @@ export default function SongEditorScreen() {
       sectionRecordingDuration: null,
       lines: [],
     };
-    await createSection(section);
+    await repositories.songs.createSection(section);
   }
 
   async function handleReorderSections(newData: Section[]) {
-    await reorderSections(id, computeOrder(newData));
+    await repositories.songs.reorderSections(id, computeOrder(newData));
   }
 
   function renderSection({ item, drag, isActive }: RenderItemParams<Section>) {
@@ -68,6 +73,57 @@ export default function SongEditorScreen() {
         />
       </ScaleDecorator>
     );
+  }
+
+  async function handleShare(includeAudio: boolean) {
+    if (!song) return;
+
+    const available = await Sharing.isAvailableAsync();
+    if (!available) {
+      Alert.alert('Sharing unavailable', 'Native file sharing is not available on this device.');
+      return;
+    }
+
+    const usedNames = new Set(
+      song.sections.flatMap((section) =>
+        section.lines.flatMap((line) => line.chordAnnotations.map((annotation) => annotation.chord.toLowerCase()))
+      )
+    );
+    const relevantCustomChords = customChords.filter((chord) => usedNames.has(chord.name.toLowerCase()));
+    const audio = await readAudioForSong(song, includeAudio);
+    const payload = buildSharePayload(song, relevantCustomChords, displayName || null, audio);
+    const path = await writeShareFile(payload, song.title);
+
+    try {
+      await Sharing.shareAsync(path, {
+        mimeType: 'application/x-songwriter-song',
+        dialogTitle: 'Share Song',
+      });
+    } finally {
+      await import('expo-file-system/legacy').then((FileSystem) =>
+        FileSystem.deleteAsync(path, { idempotent: true }).catch(() => {})
+      );
+    }
+  }
+
+  function promptShare() {
+    Alert.alert('Share Song', 'How do you want to share this song?', [
+      {
+        text: 'Share as Link',
+        onPress: () => router.push(`/song/${id}/share`),
+      },
+      {
+        text: 'Export as File',
+        onPress: () => {
+          Alert.alert('Export as File', 'Include voice memos in the exported file?', [
+            { text: 'Without Audio', onPress: () => { void handleShare(false); } },
+            { text: 'Include Audio', onPress: () => { void handleShare(true); } },
+            { text: 'Cancel', style: 'cancel' },
+          ]);
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   }
 
   if (!song) {
@@ -110,8 +166,16 @@ export default function SongEditorScreen() {
             )}
           </View>
 
+          <Pressable onPress={() => router.push(`/song/${id}/view`)} hitSlop={10} style={{ padding: 6 }}>
+            <IconSymbol name="person.2" size={20} color={Colors.icon} />
+          </Pressable>
+
           <Pressable onPress={() => router.push(`/song/${id}/snapshots`)} hitSlop={10} style={{ padding: 6 }}>
             <IconSymbol name="clock.arrow.circlepath" size={20} color={Colors.icon} />
+          </Pressable>
+
+          <Pressable onPress={promptShare} hitSlop={10} style={{ padding: 6 }}>
+            <IconSymbol name="square.and.arrow.up" size={20} color={Colors.icon} />
           </Pressable>
 
           <Pressable onPress={() => router.push(`/song/${id}/chord-help`)} hitSlop={10} style={{ padding: 6 }}>
@@ -128,7 +192,7 @@ export default function SongEditorScreen() {
             options={CHORD_DISPLAY_OPTIONS}
             value={song.chordDisplayMode}
             onChange={(mode) => {
-              void updateSong(id, { chordDisplayMode: mode });
+              void repositories.songs.update(id, { chordDisplayMode: mode });
             }}
           />
         </View>

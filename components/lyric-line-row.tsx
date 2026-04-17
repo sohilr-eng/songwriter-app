@@ -7,7 +7,7 @@ import { ChordEditor } from './chord-editor';
 import { LineRecordingButton } from './line-recording-button';
 import { useChordDisplay } from '@/contexts/chord-display-context';
 import { useCustomChords } from '@/hooks/use-custom-chords';
-import { updateLine } from '@/db/lines';
+import { repositories } from '@/repositories';
 import { serializeChords } from '@/utils/chord-parser';
 import { resolveChordShape } from '@/utils/chord-shapes';
 import type { LyricLine, ChordAnnotation } from '@/types/song';
@@ -43,7 +43,7 @@ export function LyricLineRow({ line, songId, onDelete, onDrag, isActive }: Lyric
     setText(val);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      updateLine(line.id, songId, { text: val });
+      void repositories.songs.updateLine(line.id, songId, { text: val });
     }, 350);
   }
 
@@ -51,14 +51,14 @@ export function LyricLineRow({ line, songId, onDelete, onDrag, isActive }: Lyric
     setMemo(val);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      updateLine(line.id, songId, { memo: val || null });
+      void repositories.songs.updateLine(line.id, songId, { memo: val || null });
     }, 350);
   }
 
   async function handleSaveChords(updated: ChordAnnotation[]) {
     setAnnotations(updated);
     setChordEditMode(false);
-    await updateLine(line.id, songId, { chords: serializeChords(updated) });
+    await repositories.songs.updateLine(line.id, songId, { chords: serializeChords(updated) });
   }
 
   function handleLongPress() {
@@ -141,7 +141,7 @@ export function LyricLineRow({ line, songId, onDelete, onDrag, isActive }: Lyric
               lineHeight: 26,
               color: Colors.textPrimary,
               paddingVertical: 10,
-              fontFamily: Fonts?.ios?.mono ?? undefined,
+              fontFamily: Fonts.mono,
             }}
           />
 
@@ -151,13 +151,13 @@ export function LyricLineRow({ line, songId, onDelete, onDrag, isActive }: Lyric
             existingUri={line.lineRecordingUri}
             existingDuration={line.lineRecordingDuration}
             onSave={async (uri, duration) => {
-              await updateLine(line.id, songId, {
+              await repositories.songs.updateLine(line.id, songId, {
                 lineRecordingUri: uri,
                 lineRecordingDuration: duration,
               });
             }}
             onDelete={async () => {
-              await updateLine(line.id, songId, {
+              await repositories.songs.updateLine(line.id, songId, {
                 lineRecordingUri: null,
                 lineRecordingDuration: null,
               });
@@ -227,7 +227,7 @@ export function LyricLineRow({ line, songId, onDelete, onDrag, isActive }: Lyric
           position: 'absolute',
           opacity: 0,
           fontSize: LYRIC_FONT_SIZE,
-          fontFamily: Fonts?.ios?.mono ?? undefined,
+          fontFamily: Fonts.mono,
           pointerEvents: 'none',
         }}
         onLayout={e => { charWidth.current = e.nativeEvent.layout.width; }}
