@@ -15,7 +15,7 @@ export default function AlbumsScreen() {
       keyExtractor={item => item.id}
       numColumns={2}
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{ padding: 16, gap: 12, flexGrow: 1 }}
+      contentContainerStyle={{ padding: 16, gap: 12, flexGrow: 1, paddingBottom: 32 }}
       columnWrapperStyle={{ gap: 12 }}
       style={{ backgroundColor: Colors.background }}
       renderItem={({ item }) => (

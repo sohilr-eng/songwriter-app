@@ -1,19 +1,10 @@
-import { Stack } from 'expo-router';
-import { Colors } from '@/constants/theme';
+import { Stack } from 'expo-router/stack';
+import { TabStack } from '@/components/ui/tab-stack';
 
 export default function ProfileLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: Colors.surface },
-        headerTitleStyle: { color: Colors.textPrimary, fontWeight: '700' },
-        headerShadowVisible: false,
-        headerLargeTitle: true,
-        headerBackButtonDisplayMode: 'minimal',
-        contentStyle: { backgroundColor: Colors.background },
-      }}
-    >
+    <TabStack>
       <Stack.Screen name="index" options={{ title: 'Me' }} />
-    </Stack>
+    </TabStack>
   );
 }

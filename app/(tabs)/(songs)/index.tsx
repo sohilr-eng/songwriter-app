@@ -116,7 +116,7 @@ export default function SongsScreen() {
       sections={sections}
       keyExtractor={(item) => (item.kind === 'owned' ? item.song.id : `shared-${item.song.id}`)}
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{ padding: 16, gap: 10 }}
+      contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
       style={{ backgroundColor: Colors.background }}
       stickySectionHeadersEnabled={false}
       renderSectionHeader={({ section }) =>

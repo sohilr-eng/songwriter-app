@@ -16,6 +16,28 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
+## Auth note
+
+Email confirmation links and social auth callbacks are not reliably testable in Expo Go on a physical iPhone. This app uses the native deep link `songwriterapp2026://auth-callback`, so local iPhone auth testing requires a native development build or production build.
+
+For now, Expo Go is fine for general app development, but defer iPhone auth verification until an Apple Developer account is available and an iOS dev build can be created.
+
+When returning to this later:
+
+```bash
+npm install -g eas-cli
+eas login
+eas build:configure
+eas build --platform ios --profile development
+npm run start:dev-client
+```
+
+In Supabase Auth URL Configuration, keep this redirect URL allowlisted:
+
+```text
+songwriterapp2026://auth-callback
+```
+
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)

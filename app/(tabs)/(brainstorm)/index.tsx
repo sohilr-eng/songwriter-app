@@ -14,7 +14,7 @@ export default function BrainstormScreen() {
       data={ideas}
       keyExtractor={item => item.id}
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{ padding: 16, gap: 10, flexGrow: 1 }}
+      contentContainerStyle={{ padding: 16, gap: 10, flexGrow: 1, paddingBottom: 32 }}
       style={{ backgroundColor: Colors.background }}
       renderItem={({ item }) => <BrainstormCard idea={item} />}
       ListEmptyComponent={
