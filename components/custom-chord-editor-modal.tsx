@@ -4,16 +4,17 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/theme';
 import { useCustomChords } from '@/hooks/use-custom-chords';
 import { uuid } from '@/utils/uuid';
 import { isBuiltInChord } from '@/utils/chord-shapes';
+import { recognizeChord } from '@/utils/chord-recognition';
 import { ChordFretboardEditor } from './chord-fretboard-editor';
 import type { CustomChord } from '@/types/chord';
 import type { ChordShape } from '@/utils/chord-shapes';
@@ -48,9 +49,11 @@ export function CustomChordEditorModal({
   onDone,
   onCancel,
 }: CustomChordEditorModalProps) {
+  const insets = useSafeAreaInsets();
   const { chords, createChord, updateChord } = useCustomChords();
   const [name, setName] = useState('');
   const [shape, setShape] = useState<ChordShape>(EMPTY_SHAPE);
+  const [nameAutoFilled, setNameAutoFilled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -58,9 +61,30 @@ export function CustomChordEditorModal({
     if (!visible) return;
     setName(initial?.name ?? initialName ?? '');
     setShape(getInitialShape(initial));
+    setNameAutoFilled(false);
     setError(null);
     setSaving(false);
   }, [visible, initial, initialName]);
+
+  function handleNameChange(text: string) {
+    setName(text);
+    setNameAutoFilled(false);
+  }
+
+  function handleShapeChange(next: ChordShape) {
+    setShape(next);
+    if (initial) return;
+    const editable = name === '' || nameAutoFilled;
+    if (!editable) return;
+    const detected = recognizeChord(next);
+    if (detected !== null) {
+      setName(detected);
+      setNameAutoFilled(true);
+    } else if (nameAutoFilled) {
+      setName('');
+      setNameAutoFilled(false);
+    }
+  }
 
   const normalizedNames = useMemo(
     () => chords.map((chord) => chord.name.toLowerCase()),
@@ -131,16 +155,16 @@ export function CustomChordEditorModal({
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
               <View
                 style={{
-                  maxHeight: '88%',
+                  height: '94%',
                   backgroundColor: Colors.background,
                   borderTopLeftRadius: 24,
                   borderTopRightRadius: 24,
                   paddingHorizontal: 20,
                   paddingTop: 18,
-                  paddingBottom: 28,
+                  paddingBottom: Math.max(insets.bottom, 12) + 20,
                 }}
               >
-                <ScrollView contentContainerStyle={{ gap: 18 }}>
+                <View style={{ flex: 1, gap: 18 }}>
                   <View style={{ gap: 6 }}>
                     <Text style={{ fontSize: 22, fontWeight: '800', color: Colors.textPrimary }}>
                       {initial ? 'Edit Chord' : 'New Chord'}
@@ -156,7 +180,7 @@ export function CustomChordEditorModal({
                     </Text>
                     <TextInput
                       value={name}
-                      onChangeText={setName}
+                      onChangeText={handleNameChange}
                       editable={!initial}
                       placeholder="e.g. Mystery, G alt"
                       placeholderTextColor={Colors.textTertiary}
@@ -171,6 +195,11 @@ export function CustomChordEditorModal({
                         borderColor: Colors.border,
                       }}
                     />
+                    {nameAutoFilled && name !== '' && (
+                      <Text style={{ fontSize: 12, color: Colors.textSecondary }}>
+                        Auto-detected — tap to edit
+                      </Text>
+                    )}
                     {error && (
                       <Text style={{ fontSize: 13, lineHeight: 18, color: Colors.destructive }}>
                         {error}
@@ -178,9 +207,9 @@ export function CustomChordEditorModal({
                     )}
                   </View>
 
-                  <ChordFretboardEditor shape={shape} onChange={setShape} />
+                  <ChordFretboardEditor shape={shape} onChange={handleShapeChange} />
 
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <View style={{ marginTop: 'auto', flexDirection: 'row', gap: 10 }}>
                     <Pressable
                       onPress={onCancel}
                       style={{
@@ -213,7 +242,7 @@ export function CustomChordEditorModal({
                       </Text>
                     </Pressable>
                   </View>
-                </ScrollView>
+                </View>
               </View>
             </KeyboardAvoidingView>
           </TouchableWithoutFeedback>

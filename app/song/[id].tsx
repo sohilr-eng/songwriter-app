@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Alert, View, Text, ScrollView, Pressable, SafeAreaView } from 'react-native';
+import { Alert, View, Text, Pressable, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -182,6 +182,10 @@ export default function SongEditorScreen() {
             <IconSymbol name="music.note.list" size={20} color={Colors.icon} />
           </Pressable>
 
+          <Pressable onPress={() => router.push(`/song/${id}/piano`)} hitSlop={10} style={{ padding: 6 }}>
+            <IconSymbol name="pianokeys" size={20} color={Colors.icon} />
+          </Pressable>
+
           <Pressable onPress={() => router.push(`/song/${id}/settings`)} hitSlop={10} style={{ padding: 6 }}>
             <IconSymbol name="ellipsis" size={20} color={Colors.icon} />
           </Pressable>
@@ -198,56 +202,55 @@ export default function SongEditorScreen() {
         </View>
 
         <ChordDisplayProvider mode={song.chordDisplayMode}>
-          <ScrollView
+          <DraggableFlatList
+            data={song.sections}
+            keyExtractor={(item) => item.id}
+            renderItem={renderSection}
+            onDragEnd={({ data }) => handleReorderSections(data)}
             contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
-          >
-            <DraggableFlatList
-              data={song.sections}
-              keyExtractor={(item) => item.id}
-              renderItem={renderSection}
-              onDragEnd={({ data }) => handleReorderSections(data)}
-              scrollEnabled={false}
-              containerStyle={{ overflow: 'visible' }}
-            />
+            containerStyle={{ overflow: 'visible' }}
+            ListFooterComponent={
+              <View>
+                <Pressable
+                  onPress={handleAddSection}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    paddingVertical: 14,
+                    borderRadius: 14,
+                    borderWidth: 1.5,
+                    borderColor: Colors.border,
+                    borderStyle: 'dashed',
+                    opacity: pressed ? 0.6 : 1,
+                    marginTop: song.sections.length > 0 ? 4 : 0,
+                  })}
+                >
+                  <IconSymbol name="plus" size={18} color={Colors.textSecondary} />
+                  <Text style={{ fontSize: 15, color: Colors.textSecondary, fontWeight: '500' }}>
+                    Add Section
+                  </Text>
+                </Pressable>
 
-            <Pressable
-              onPress={handleAddSection}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                paddingVertical: 14,
-                borderRadius: 14,
-                borderWidth: 1.5,
-                borderColor: Colors.border,
-                borderStyle: 'dashed',
-                opacity: pressed ? 0.6 : 1,
-                marginTop: song.sections.length > 0 ? 4 : 0,
-              })}
-            >
-              <IconSymbol name="plus" size={18} color={Colors.textSecondary} />
-              <Text style={{ fontSize: 15, color: Colors.textSecondary, fontWeight: '500' }}>
-                Add Section
-              </Text>
-            </Pressable>
-
-            {song.sections.length === 0 && (
-              <Text
-                style={{
-                  textAlign: 'center',
-                  color: Colors.textTertiary,
-                  fontSize: 14,
-                  marginTop: 16,
-                  lineHeight: 20,
-                }}
-              >
-                Add a section to start writing.{'\n'}Verse, Chorus, Bridge - name it anything.
-              </Text>
-            )}
-          </ScrollView>
+                {song.sections.length === 0 && (
+                  <Text
+                    style={{
+                      textAlign: 'center',
+                      color: Colors.textTertiary,
+                      fontSize: 14,
+                      marginTop: 16,
+                      lineHeight: 20,
+                    }}
+                  >
+                    Add a section to start writing.{'\n'}Verse, Chorus, Bridge - name it anything.
+                  </Text>
+                )}
+              </View>
+            }
+          />
         </ChordDisplayProvider>
 
         <UndoBar

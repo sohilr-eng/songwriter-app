@@ -1,4 +1,4 @@
-import { Pressable, SectionList, Text, View } from 'react-native';
+import { FlatList, Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SongCard } from '@/components/song-card';
 import { EmptyState } from '@/components/empty-state';
@@ -71,9 +71,14 @@ function SharedSongCard({ song }: { song: MemberSongSummary }) {
   );
 }
 
-type SectionItem =
+type SongRow =
   | { kind: 'owned'; song: SongSummary }
   | { kind: 'shared'; song: MemberSongSummary };
+
+type ListRow =
+  | { kind: 'header'; id: string; title: string }
+  | { kind: 'owned'; id: string; song: SongSummary }
+  | { kind: 'shared'; id: string; song: MemberSongSummary };
 
 export default function SongsScreen() {
   const songs = useSongs();
@@ -81,7 +86,7 @@ export default function SongsScreen() {
   const { songs: sharedSongs } = useSharedSongs(auth.user?.id);
   const router = useRouter();
 
-  const sections: { title: string; data: SectionItem[] }[] = [];
+  const sections: { title: string; data: SongRow[] }[] = [];
 
   if (songs.length > 0 || sharedSongs.length === 0) {
     sections.push({
@@ -111,36 +116,50 @@ export default function SongsScreen() {
     );
   }
 
+  const rows: ListRow[] = sections.flatMap((section) => {
+    const dataRows = section.data.map((item) =>
+      item.kind === 'owned'
+        ? ({ kind: 'owned', id: item.song.id, song: item.song } as const)
+        : ({ kind: 'shared', id: `shared-${item.song.id}`, song: item.song } as const)
+    );
+
+    return sections.length > 1
+      ? [{ kind: 'header', id: `header-${section.title}`, title: section.title } as const, ...dataRows]
+      : dataRows;
+  });
+
   return (
-    <SectionList
-      sections={sections}
-      keyExtractor={(item) => (item.kind === 'owned' ? item.song.id : `shared-${item.song.id}`)}
+    <FlatList
+      data={rows}
+      keyExtractor={(item) => item.id}
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
       style={{ backgroundColor: Colors.background }}
-      stickySectionHeadersEnabled={false}
-      renderSectionHeader={({ section }) =>
-        sections.length > 1 ? (
-          <Text
-            style={{
-              fontSize: 13,
-              fontWeight: '700',
-              color: Colors.textSecondary,
-              marginBottom: 6,
-              marginTop: section.title === 'My Songs' ? 0 : 12,
-            }}
-          >
-            {section.title}
-          </Text>
-        ) : null
-      }
       renderItem={({ item }) => {
+        if (item.kind === 'header') {
+          return (
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '700',
+                color: Colors.textSecondary,
+                marginBottom: 6,
+                marginTop: item.title === 'My Songs' ? 0 : 12,
+              }}
+            >
+              {item.title}
+            </Text>
+          );
+        }
+
         if (item.kind === 'owned') {
           return <SongCard song={item.song} />;
         }
+
         return <SharedSongCard song={item.song} />;
       }}
       ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+      ListEmptyComponent={null}
     />
   );
 }

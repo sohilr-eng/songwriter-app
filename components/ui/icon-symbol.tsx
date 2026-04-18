@@ -57,6 +57,10 @@ const MAPPING: IconMapping = {
   'nosign':                             'block',
   'doc.on.doc':                         'content-copy',
 
+  // Piano + lock
+  'pianokeys':                           'piano',
+  'lock':                                'lock',
+
   // Profile
   'person.fill':                         'person',
   'person.crop.circle':                  'account-circle',

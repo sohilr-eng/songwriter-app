@@ -93,6 +93,12 @@ export default function RootLayout() {
             sheetAllowedDetents: [0.5, 1.0],
             title: 'Chord Reference',
           }} />
+          <Stack.Screen name="song/[id]/piano" options={{
+            presentation: 'formSheet',
+            sheetGrabberVisible: true,
+            sheetAllowedDetents: [0.65, 1.0],
+            title: 'Piano',
+          }} />
           <Stack.Screen name="song/[id]/share" options={{
             presentation: 'formSheet',
             sheetGrabberVisible: true,
